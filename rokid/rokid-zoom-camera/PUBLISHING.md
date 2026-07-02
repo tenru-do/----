@@ -20,7 +20,7 @@ Run:
 
 ```powershell
 git status --short
-git check-ignore .tmp android-sdk app/build build .gradle
+git check-ignore .tmp android-sdk rokid/rokid-zoom-camera/app/build build .gradle
 git ls-files
 ```
 
@@ -35,19 +35,29 @@ Confirm `git ls-files` contains only intended source/documentation files.
 - Confirm no files from `.tmp/` are staged.
 - Build once from a clean checkout.
 
+## Suggested Public URLs
+
+Current project path:
+
+```text
+https://github.com/tenru-do/----/tree/main/rokid/rokid-zoom-camera
+```
+
+If the repository is renamed, update public posts to use the new repository URL plus `/tree/main/rokid/rokid-zoom-camera`.
+
 ## Rename Repository
 
 Recommended repository name:
 
 ```text
-rokid-zoom-camera
+projects
 ```
 
 GitHub web steps:
 
 1. Open the repository on GitHub.
 2. Go to `Settings`.
-3. In `Repository name`, enter `rokid-zoom-camera`.
+3. In `Repository name`, enter a clearer collection name, such as `projects`.
 4. Click `Rename`.
 5. Update any shared links after the rename.
 

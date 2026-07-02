@@ -1,11 +1,18 @@
 .gradle/
+**/.gradle/
 build/
+**/build/
 app/build/
+**/app/build/
 local.properties
+**/local.properties
 *.iml
 .idea/
+**/.idea/
 .tmp/
+**/.tmp/
 android-sdk/
+**/android-sdk/
 *.apk
 *.aab
 *.jks
@@ -13,3 +20,5 @@ android-sdk/
 *.log
 captures/
 screenshots/
+**/captures/
+**/screenshots/
