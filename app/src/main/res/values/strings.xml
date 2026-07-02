@@ -1,0 +1,3 @@
+<resources>
+    <string name="accessibility_service_description">Intercepts the Rokid camera button while Rokid Zoom Camera is active.</string>
+</resources>
