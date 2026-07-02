@@ -14,6 +14,8 @@ local.properties
 android-sdk/
 **/android-sdk/
 *.apk
+!rokid/rokid-zoom-camera/dist/
+!rokid/rokid-zoom-camera/dist/*.apk
 *.aab
 *.jks
 *.keystore

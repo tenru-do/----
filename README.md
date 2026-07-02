@@ -9,8 +9,13 @@ This repository is organized as a small project collection.
 - [Excel Macros](excel-macros/README.md)
   - Legacy Excel/VBA macro modules.
 
+## Author
+
+- tenru-do
+- Contact: 86155527+tenru-do@users.noreply.github.com
+
 ## Notes
 
 The Rokid app is an unofficial prototype and is not endorsed by Rokid.
 
-Build outputs, Android SDK files, screenshots, APKs, and local investigation artifacts are intentionally excluded by `.gitignore`.
+Build outputs, Android SDK files, screenshots, and local investigation artifacts are intentionally excluded by `.gitignore`. Explicit distribution files may be published under each project's `dist/` folder.

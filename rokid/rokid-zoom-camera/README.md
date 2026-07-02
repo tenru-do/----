@@ -4,6 +4,11 @@ Unofficial Android camera app prototype for Rokid Glasses.
 
 The app keeps the glasses display minimal: a small dim camera preview, temple-swipe zoom, physical-button photo capture, and physical-button long-press video recording.
 
+## Author
+
+- tenru-do
+- Contact: 86155527+tenru-do@users.noreply.github.com
+
 ## Current Features
 
 - Camera2 preview on Rokid Glasses.
@@ -37,6 +42,20 @@ The app is a prototype. Test carefully before relying on it for important captur
 
 The app does not use cloud APIs and does not send captured media over the network. Photos and videos are saved locally on the device.
 
+## Download APK
+
+Prototype debug APK:
+
+[RokidZoomCamera-v0.1.0-debug.apk](https://github.com/tenru-do/----/raw/main/rokid/rokid-zoom-camera/dist/RokidZoomCamera-v0.1.0-debug.apk)
+
+File details:
+
+- Version: `0.1.0`
+- Size: `30,995 bytes`
+- SHA-256: `3A0F05D4E1F7F24D6F68D5B2EC6275BD6B263D8E7209803023BFA73AC43B8CF5`
+
+This APK is debug-signed and intended for prototype sideload testing.
+
 ## Build
 
 Open `rokid/rokid-zoom-camera` in Android Studio and build the `app` module.
@@ -67,6 +86,7 @@ Do not publish local investigation artifacts. The following are intentionally ig
 - `build/`
 - `app/build/`
 - generated APK/AAB files
+- except the explicitly published prototype APK under `dist/`
 - keystore files
 - screenshots/captures
 
