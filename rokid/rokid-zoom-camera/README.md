@@ -2,7 +2,7 @@
 
 Unofficial Android camera app prototype for Rokid Glasses.
 
-The app keeps the glasses display minimal: a small dim camera preview, temple-swipe zoom, physical-button photo capture, and physical-button long-press video recording.
+The app keeps the glasses display minimal: a small camera preview that follows the Rokid/system brightness setting, temple-swipe zoom, physical-button photo capture, and physical-button long-press video recording.
 
 ## Author
 
@@ -17,7 +17,7 @@ The app keeps the glasses display minimal: a small dim camera preview, temple-sw
 - Video recording with the current zoom applied.
 - Red `REC` indicator while video recording.
 - Saved media is written to `DCIM/Camera` through Android MediaStore.
-- Preview is intentionally dim and small to reduce eye strain.
+- Preview is intentionally small and follows the Rokid/system brightness setting.
 - App attempts to suppress the official short-press camera action while this app is active, then restores it when the app pauses/stops.
 - Bluetooth/media-button handling is intentionally not used, to avoid interfering with music playback.
 
@@ -46,13 +46,13 @@ The app does not use cloud APIs and does not send captured media over the networ
 
 Prototype debug APK:
 
-[RokidZoomCamera-v0.1.0-debug.apk](https://github.com/tenru-do/----/raw/main/rokid/rokid-zoom-camera/dist/RokidZoomCamera-v0.1.0-debug.apk)
+[RokidZoomCamera-v0.1.1-debug.apk](https://github.com/tenru-do/----/raw/main/rokid/rokid-zoom-camera/dist/RokidZoomCamera-v0.1.1-debug.apk)
 
 File details:
 
-- Version: `0.1.0`
-- Size: `30,995 bytes`
-- SHA-256: `3A0F05D4E1F7F24D6F68D5B2EC6275BD6B263D8E7209803023BFA73AC43B8CF5`
+- Version: `0.1.1`
+- Size: `32,146 bytes`
+- SHA-256: `BE796AC3C8D189AE8C053BF2CC4F54705E3E13FA3D6477DC8DDD8ED6E1F5A2FB`
 
 This APK is debug-signed and intended for prototype sideload testing.
 

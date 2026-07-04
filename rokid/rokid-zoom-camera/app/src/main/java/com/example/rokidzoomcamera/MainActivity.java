@@ -58,9 +58,7 @@ public class MainActivity extends Activity {
     private static final int CAMERA_PERMISSION_REQUEST = 10;
     private static final float[] CAMERA_ROTATION_STEPS = {0f, 90f, 180f, 270f};
     private static final float PHONE_EXPORT_ROTATION_DEGREES = -90f;
-    private static final float SCREEN_BRIGHTNESS = 0.04f;
     private static final float PREVIEW_SIZE_FRACTION = 0.50f;
-    private static final float PREVIEW_ALPHA = 0.45f;
     private static final int VIDEO_WIDTH = 1280;
     private static final int VIDEO_HEIGHT = 720;
     private static final int VIDEO_BIT_RATE = 8_000_000;
@@ -111,9 +109,6 @@ public class MainActivity extends Activity {
         getWindow().setFlags(
                 WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        WindowManager.LayoutParams attrs = getWindow().getAttributes();
-        attrs.screenBrightness = SCREEN_BRIGHTNESS;
-        getWindow().setAttributes(attrs);
         buildUi();
         registerHardwareButtonHooks();
         handleCameraIntent(getIntent());
@@ -130,7 +125,6 @@ public class MainActivity extends Activity {
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xff000000);
         previewView = new TextureView(this);
-        previewView.setAlpha(PREVIEW_ALPHA);
         overlayView = new OverlayView(this);
         FrameLayout.LayoutParams previewParams = new FrameLayout.LayoutParams(
                 (int) (getResources().getDisplayMetrics().widthPixels * PREVIEW_SIZE_FRACTION),
