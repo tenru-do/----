@@ -159,7 +159,7 @@ public class MainActivity extends Activity {
 
         statusHud = new TextView(this);
         statusHud.setTextColor(0xfff2f7f8);
-        statusHud.setTextSize(13f);
+        statusHud.setTextSize(12f);
         statusHud.setGravity(Gravity.CENTER);
         statusHud.setPadding(8, 4, 8, 4);
         statusHud.setSingleLine(true);
@@ -167,7 +167,7 @@ public class MainActivity extends Activity {
         previewContainer.addView(statusHud, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.TOP));
+                Gravity.BOTTOM));
 
         root.addView(previewContainer, previewParams);
         recordingIndicator = new TextView(this);

@@ -38,7 +38,7 @@ rokid/rokid-zoom-camera/dist/
 Use a versioned filename, for example:
 
 ```text
-RokidZoomCamera-v0.1.2-debug.apk
+RokidZoomCamera-v0.1.3-debug.apk
 ```
 
 Document the file size and SHA-256 in the project README. Prefer GitHub Releases for future signed builds.
