@@ -13,6 +13,7 @@ local.properties
 **/.tmp/
 android-sdk/
 **/android-sdk/
+apk-transfer/
 *.apk
 !rokid/rokid-zoom-camera/dist/
 !rokid/rokid-zoom-camera/dist/*.apk

@@ -9,6 +9,7 @@ import android.view.View;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class OverlayView extends View {
     private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -74,7 +75,8 @@ public class OverlayView extends View {
 
         RectF topBox = new RectF(pad, pad, width - pad, pad + line * 2.5f);
         canvas.drawRoundRect(topBox, 10f, 10f, bgPaint);
-        canvas.drawText("Mode: " + mode + "    Zoom: " + String.format("%.1fx", zoom), pad * 1.7f, pad + line, textPaint);
+        canvas.drawText("Mode: " + mode + "    Zoom: "
+                + String.format(Locale.US, "%.1fx", zoom), pad * 1.7f, pad + line, textPaint);
         canvas.drawText(message, pad * 1.7f, pad + line * 2f, textPaint);
 
         if (!includeEventLog) {

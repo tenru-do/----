@@ -1,6 +1,7 @@
 package com.example.rokidzoomcamera;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
@@ -28,9 +29,12 @@ import android.media.ImageReader;
 import android.media.MediaScannerConnection;
 import android.media.MediaRecorder;
 import android.net.Uri;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.Size;
@@ -64,6 +68,8 @@ public class MainActivity extends Activity {
     private static final int VIDEO_BIT_RATE = 8_000_000;
     private static final int VIDEO_FRAME_RATE = 30;
     private static final long PREVIEW_STALL_CHECK_MS = 2500L;
+    private static final long PREVIEW_SLEEP_TIMEOUT_MS = 15_000L;
+    private static final float SLEEP_PREVIEW_ALPHA = 0.12f;
     private static final float[] ZOOM_STEPS = {1.0f, 1.5f, 2.0f, 3.0f, 4.0f};
     private static final String ACTION_SPRITE_BUTTON_UP = "com.android.action.ACTION_SPRITE_BUTTON_UP";
     private static final String ACTION_SPRITE_BUTTON_DOWN = "com.android.action.ACTION_SPRITE_BUTTON_DOWN";
@@ -75,6 +81,7 @@ public class MainActivity extends Activity {
     private TextureView previewView;
     private OverlayView overlayView;
     private TextView recordingIndicator;
+    private TextView statusHud;
     private CameraDevice cameraDevice;
     private CameraCaptureSession captureSession;
     private CaptureRequest.Builder previewRequestBuilder;
@@ -88,6 +95,7 @@ public class MainActivity extends Activity {
     private long lastSwipeAt;
     private boolean pendingCaptureWhenReady;
     private BroadcastReceiver hardwareButtonReceiver;
+    private BroadcastReceiver batteryReceiver;
     private long lastRokidButtonCaptureAt;
     private long lastRokidLongPressAt;
     private long lastVideoToggleAt;
@@ -101,6 +109,19 @@ public class MainActivity extends Activity {
     private Uri pendingVideoUri;
     private String pendingVideoName;
     private boolean recordingVideo;
+    private int batteryPercent = -1;
+    private boolean batteryCharging;
+    private boolean previewSleeping;
+    private final Handler uiHandler = new Handler(Looper.getMainLooper());
+    private final Runnable previewSleepRunnable = this::enterPreviewSleep;
+    private final Runnable clockRunnable = new Runnable() {
+        @Override
+        public void run() {
+            updateStatusHud();
+            long nextMinute = 60_000L - (System.currentTimeMillis() % 60_000L);
+            uiHandler.postDelayed(this, nextMinute);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,6 +131,7 @@ public class MainActivity extends Activity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         buildUi();
+        registerBatteryStatus();
         registerHardwareButtonHooks();
         handleCameraIntent(getIntent());
         activityActive = true;
@@ -124,15 +146,32 @@ public class MainActivity extends Activity {
     private void buildUi() {
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xff000000);
+        FrameLayout previewContainer = new FrameLayout(this);
         previewView = new TextureView(this);
         overlayView = new OverlayView(this);
         FrameLayout.LayoutParams previewParams = new FrameLayout.LayoutParams(
                 (int) (getResources().getDisplayMetrics().widthPixels * PREVIEW_SIZE_FRACTION),
                 (int) (getResources().getDisplayMetrics().heightPixels * PREVIEW_SIZE_FRACTION),
                 Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        root.addView(previewView, previewParams);
+        previewContainer.addView(previewView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
+        statusHud = new TextView(this);
+        statusHud.setTextColor(0xfff2f7f8);
+        statusHud.setTextSize(13f);
+        statusHud.setGravity(Gravity.CENTER);
+        statusHud.setPadding(8, 4, 8, 4);
+        statusHud.setSingleLine(true);
+        statusHud.setBackgroundColor(0x99000000);
+        previewContainer.addView(statusHud, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP));
+
+        root.addView(previewContainer, previewParams);
         recordingIndicator = new TextView(this);
-        recordingIndicator.setText("REC");
+        recordingIndicator.setText(R.string.recording_indicator);
         recordingIndicator.setTextColor(0xffff3030);
         recordingIndicator.setTextSize(18f);
         recordingIndicator.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
@@ -142,20 +181,105 @@ public class MainActivity extends Activity {
         FrameLayout.LayoutParams recParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.TOP | Gravity.LEFT);
-        recParams.leftMargin = 24;
+                Gravity.TOP | Gravity.START);
+        recParams.setMarginStart(24);
         recParams.topMargin = 24;
         root.addView(recordingIndicator, recParams);
         setContentView(root);
 
         updateOverlayStatus();
+        updateStatusHud();
     }
 
+    private void registerBatteryStatus() {
+        batteryReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                updateBatteryStatus(intent);
+            }
+        };
+        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent currentBattery;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            currentBattery = registerReceiver(batteryReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            currentBattery = registerReceiver(batteryReceiver, filter);
+        }
+        updateBatteryStatus(currentBattery);
+    }
+
+    private void updateBatteryStatus(Intent batteryIntent) {
+        if (batteryIntent == null) {
+            return;
+        }
+        int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+        batteryPercent = level >= 0 && scale > 0 ? Math.round(level * 100f / scale) : -1;
+        int status = batteryIntent.getIntExtra(
+                BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN);
+        int plugged = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0);
+        batteryCharging = plugged != 0
+                || status == BatteryManager.BATTERY_STATUS_CHARGING
+                || status == BatteryManager.BATTERY_STATUS_FULL;
+        updateStatusHud();
+    }
+
+    private void updateStatusHud() {
+        if (statusHud == null) {
+            return;
+        }
+        String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
+        String battery = batteryPercent >= 0 ? batteryPercent + "%" : "--%";
+        String charging = getString(batteryCharging
+                ? R.string.charging_on
+                : R.string.charging_off);
+        String sleep = previewSleeping ? getString(R.string.sleep_indicator) : "";
+        statusHud.setText(getString(R.string.status_hud, time, battery, charging, sleep));
+    }
+
+    private void startIdleTracking() {
+        uiHandler.removeCallbacks(clockRunnable);
+        uiHandler.post(clockRunnable);
+        noteUserActivity();
+    }
+
+    private void stopIdleTracking() {
+        uiHandler.removeCallbacks(clockRunnable);
+        uiHandler.removeCallbacks(previewSleepRunnable);
+    }
+
+    private void noteUserActivity() {
+        if (!activityActive || previewView == null) {
+            return;
+        }
+        uiHandler.removeCallbacks(previewSleepRunnable);
+        if (previewSleeping || previewView.getAlpha() != 1f) {
+            previewSleeping = false;
+            previewView.setAlpha(1f);
+            updateStatusHud();
+        }
+        if (!recordingVideo) {
+            uiHandler.postDelayed(previewSleepRunnable, PREVIEW_SLEEP_TIMEOUT_MS);
+        }
+    }
+
+    private void enterPreviewSleep() {
+        if (!activityActive || recordingVideo || previewView == null) {
+            return;
+        }
+        previewSleeping = true;
+        previewView.setAlpha(SLEEP_PREVIEW_ALPHA);
+        updateStatusHud();
+    }
+
+    // Rokid hardware events come from another process; pre-33 APIs have no exported flag.
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void registerHardwareButtonHooks() {
         hardwareButtonReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
+                noteUserActivity();
                 overlayView.log("broadcast " + action);
                 KeyEvent keyEvent = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
                 if (keyEvent != null) {
@@ -484,6 +608,7 @@ public class MainActivity extends Activity {
     }
 
     private void capturePhoto() {
+        noteUserActivity();
         if (recordingVideo) {
             stopVideoRecording(true);
             return;
@@ -510,6 +635,7 @@ public class MainActivity extends Activity {
     }
 
     private void startVideoRecording() {
+        noteUserActivity();
         if (cameraDevice == null) {
             overlayView.log("video ignored: camera not ready");
             return;
@@ -541,6 +667,7 @@ public class MainActivity extends Activity {
                                 captureSession.setRepeatingRequest(recordBuilder.build(), null, null);
                                 mediaRecorder.start();
                                 recordingVideo = true;
+                                noteUserActivity();
                                 updateRecordingIndicator();
                                 overlayView.log("video started");
                             } catch (CameraAccessException | IllegalStateException e) {
@@ -573,6 +700,7 @@ public class MainActivity extends Activity {
             return;
         }
         recordingVideo = false;
+        noteUserActivity();
         updateRecordingIndicator();
         try {
             if (captureSession != null) {
@@ -722,6 +850,7 @@ public class MainActivity extends Activity {
                 || MediaStore.ACTION_IMAGE_CAPTURE.equals(action)
                 || MediaStore.ACTION_VIDEO_CAPTURE.equals(action)
                 || Intent.ACTION_CAMERA_BUTTON.equals(action)) {
+            noteUserActivity();
             overlayView.log("intent " + action);
             capturePhoto();
         }
@@ -813,12 +942,14 @@ public class MainActivity extends Activity {
     }
 
     private void toggleArCapture() {
+        noteUserActivity();
         arCapture = !arCapture;
         overlayView.log("mode " + (arCapture ? "AR" : "NORMAL"));
         updateOverlayStatus();
     }
 
     private void rotateCameraView() {
+        noteUserActivity();
         rotationIndex = (rotationIndex + 1) % CAMERA_ROTATION_STEPS.length;
         overlayView.log("rotation " + (int) getCameraRotationDegrees());
         configurePreviewTransform(previewView.getWidth(), previewView.getHeight());
@@ -826,6 +957,7 @@ public class MainActivity extends Activity {
     }
 
     private void changeZoom(int delta, String source) {
+        noteUserActivity();
         int oldIndex = zoomIndex;
         zoomIndex = Math.max(0, Math.min(ZOOM_STEPS.length - 1, zoomIndex + delta));
         while (zoomIndex > 0 && ZOOM_STEPS[zoomIndex] > maxZoom) {
@@ -847,6 +979,7 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        noteUserActivity();
         overlayView.log("key " + event.getKeyCode() + " " + keyAction(event));
         if (handleHardwareKey(event, "key")) {
             return true;
@@ -903,6 +1036,7 @@ public class MainActivity extends Activity {
                 .putBoolean(RokidButtonAccessibilityService.PREF_APP_ACTIVE, true)
                 .apply();
         claimOfficialShortPress();
+        startIdleTracking();
         if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startWhenReady();
         }
@@ -911,6 +1045,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         activityActive = false;
+        stopIdleTracking();
         stopVideoRecording(false);
         closeCameraResources();
         restoreOfficialShortPress();
@@ -929,12 +1064,16 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            noteUserActivity();
+        }
         handleSwipeMotion(event, "touch");
         return super.dispatchTouchEvent(event);
     }
 
     @Override
     public boolean dispatchGenericMotionEvent(MotionEvent event) {
+        noteUserActivity();
         overlayView.log("motion action=" + event.getAction() + " source=" + event.getSource());
         handleSwipeMotion(event, "motion");
         return super.dispatchGenericMotionEvent(event);
@@ -967,11 +1106,16 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         activityActive = false;
+        stopIdleTracking();
         stopVideoRecording(false);
         restoreOfficialShortPress();
         if (hardwareButtonReceiver != null) {
             unregisterReceiver(hardwareButtonReceiver);
             hardwareButtonReceiver = null;
+        }
+        if (batteryReceiver != null) {
+            unregisterReceiver(batteryReceiver);
+            batteryReceiver = null;
         }
         closeCameraResources();
         super.onDestroy();

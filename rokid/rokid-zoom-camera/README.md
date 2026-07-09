@@ -18,6 +18,9 @@ The app keeps the glasses display minimal: a small camera preview that follows t
 - Red `REC` indicator while video recording.
 - Saved media is written to `DCIM/Camera` through Android MediaStore.
 - Preview is intentionally small and follows the Rokid/system brightness setting.
+- Preview HUD shows the current time, battery percentage, and charging status.
+- After 15 seconds without input, the preview dims and shows `SLEEP`.
+- A swipe, key, touch, capture, or other app input restores the preview to the Rokid/system brightness level.
 - App attempts to suppress the official short-press camera action while this app is active, then restores it when the app pauses/stops.
 - Bluetooth/media-button handling is intentionally not used, to avoid interfering with music playback.
 
@@ -46,13 +49,13 @@ The app does not use cloud APIs and does not send captured media over the networ
 
 Prototype debug APK:
 
-[RokidZoomCamera-v0.1.1-debug.apk](https://github.com/tenru-do/----/raw/main/rokid/rokid-zoom-camera/dist/RokidZoomCamera-v0.1.1-debug.apk)
+[RokidZoomCamera-v0.1.2-debug.apk](https://github.com/tenru-do/----/raw/main/rokid/rokid-zoom-camera/dist/RokidZoomCamera-v0.1.2-debug.apk)
 
 File details:
 
-- Version: `0.1.1`
-- Size: `32,146 bytes`
-- SHA-256: `BE796AC3C8D189AE8C053BF2CC4F54705E3E13FA3D6477DC8DDD8ED6E1F5A2FB`
+- Version: `0.1.2`
+- Size: `56,774 bytes`
+- SHA-256: `7B2AAA3034E2B40663DB9D9F31BBAC6EE7C08105C0090A29EBDC6D90D5954EE7`
 
 This APK is debug-signed and intended for prototype sideload testing.
 
